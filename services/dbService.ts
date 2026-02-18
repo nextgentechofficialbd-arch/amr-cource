@@ -58,7 +58,7 @@ class DbService {
     { id: 'admin-1', email: 'admin@amrcourse.com', full_name: 'Admin User', phone: '0123456789', role: UserRole.ADMIN, created_at: new Date().toISOString() }
   ];
   private enrollments: Enrollment[] = [];
-  public payments: Payment[] = []; // Made public for stats access
+  public payments: Payment[] = []; 
   private videoProgress: VideoProgress[] = [];
   private promoCodes: PromoCode[] = [
     { id: 'pc1', code: 'AMR20', discount_percent: 20, max_uses: 100, used_count: 5, is_active: true }
@@ -70,30 +70,40 @@ class DbService {
   }
 
   private save() {
-    localStorage.setItem('amrcourse_db', JSON.stringify({
-      programs: this.programs,
-      videos: this.videos,
-      students: this.students,
-      enrollments: this.enrollments,
-      payments: this.payments,
-      videoProgress: this.videoProgress,
-      promoCodes: this.promoCodes,
-      ipLogs: this.ipLogs
-    }));
+    try {
+      localStorage.setItem('amrcourse_db', JSON.stringify({
+        programs: this.programs,
+        videos: this.videos,
+        students: this.students,
+        enrollments: this.enrollments,
+        payments: this.payments,
+        videoProgress: this.videoProgress,
+        promoCodes: this.promoCodes,
+        ipLogs: this.ipLogs
+      }));
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+    }
   }
 
   private load() {
-    const data = localStorage.getItem('amrcourse_db');
-    if (data) {
-      const parsed = JSON.parse(data);
-      this.programs = parsed.programs || INITIAL_PROGRAMS;
-      this.videos = parsed.videos || INITIAL_VIDEOS;
-      this.students = parsed.students || this.students;
-      this.enrollments = parsed.enrollments || [];
-      this.payments = parsed.payments || [];
-      this.videoProgress = parsed.videoProgress || [];
-      this.promoCodes = parsed.promoCodes || this.promoCodes;
-      this.ipLogs = parsed.ipLogs || [];
+    try {
+      const data = localStorage.getItem('amrcourse_db');
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed) {
+          this.programs = parsed.programs || INITIAL_PROGRAMS;
+          this.videos = parsed.videos || INITIAL_VIDEOS;
+          this.students = parsed.students || this.students;
+          this.enrollments = parsed.enrollments || [];
+          this.payments = parsed.payments || [];
+          this.videoProgress = parsed.videoProgress || [];
+          this.promoCodes = parsed.promoCodes || this.promoCodes;
+          this.ipLogs = parsed.ipLogs || [];
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load from localStorage', e);
     }
   }
 
@@ -111,8 +121,12 @@ class DbService {
 
   // Auth
   getCurrentUser() {
-    const user = localStorage.getItem('amrcourse_user');
-    return user ? JSON.parse(user) as Student : null;
+    try {
+      const user = localStorage.getItem('amrcourse_user');
+      return user ? JSON.parse(user) as Student : null;
+    } catch {
+      return null;
+    }
   }
 
   login(email: string) {
@@ -152,6 +166,23 @@ class DbService {
     this.save();
   }
 
+  // Videos
+  getVideosForProgram(programId: string) {
+    return this.videos.filter(v => v.program_id === programId).sort((a, b) => a.order_index - b.order_index);
+  }
+
+  saveVideo(video: Video) {
+    const idx = this.videos.findIndex(v => v.id === video.id);
+    if (idx > -1) this.videos[idx] = video;
+    else this.videos.push(video);
+    this.save();
+  }
+
+  deleteVideo(id: string) {
+    this.videos = this.videos.filter(v => v.id !== id);
+    this.save();
+  }
+
   // Promo Codes
   getPromoCodes() { return this.promoCodes; }
   savePromoCode(code: PromoCode) {
@@ -160,6 +191,7 @@ class DbService {
     else this.promoCodes.push(code);
     this.save();
   }
+
   togglePromoCode(id: string) {
     const code = this.promoCodes.find(c => c.id === id);
     if (code) {
@@ -168,59 +200,47 @@ class DbService {
     }
   }
 
-  // Videos
-  getVideosForProgram(programId: string) {
-    return this.videos.filter(v => v.program_id === programId).sort((a, b) => a.order_index - b.order_index);
-  }
-  saveVideo(video: Video) {
-    const idx = this.videos.findIndex(v => v.id === video.id);
-    if (idx > -1) this.videos[idx] = video;
-    else this.videos.push(video);
-    this.save();
-  }
-  deleteVideo(id: string) {
-    this.videos = this.videos.filter(v => v.id !== id);
-    this.save();
+  validatePromo(code: string) {
+    return this.promoCodes.find(c => c.code === code.toUpperCase() && c.is_active && c.used_count < c.max_uses);
   }
 
-  // Enrollment & Payment
-  submitEnrollment(enrollData: { 
-    name: string, email: string, phone: string, programId: string, 
-    trxId: string, amount: number, screenshotUrl?: string 
-  }) {
-    let student = this.students.find(s => s.email === enrollData.email);
+  // Enrollment & Payments
+  submitEnrollment(data: { name: string, email: string, phone: string, trxId: string, programId: string, amount: number }) {
+    let student = this.students.find(s => s.email === data.email);
     if (!student) {
       student = {
         id: crypto.randomUUID(),
-        email: enrollData.email,
-        full_name: enrollData.name,
-        phone: enrollData.phone,
+        email: data.email,
+        full_name: data.name,
+        phone: data.phone,
         role: UserRole.STUDENT,
         created_at: new Date().toISOString()
       };
       this.students.push(student);
     }
+
     const enrollment: Enrollment = {
       id: crypto.randomUUID(),
       student_id: student.id,
-      program_id: enrollData.programId,
+      program_id: data.programId,
       status: PaymentStatus.PENDING,
       enrolled_at: new Date().toISOString(),
       token_used: false
     };
     this.enrollments.push(enrollment);
+
     const payment: Payment = {
       id: crypto.randomUUID(),
       enrollment_id: enrollment.id,
       student_id: student.id,
-      program_id: enrollData.programId,
-      amount: enrollData.amount,
-      bkash_trx_id: enrollData.trxId,
-      screenshot_url: enrollData.screenshotUrl || 'https://via.placeholder.com/400x600?text=Manual+TrxID+Proof',
+      program_id: data.programId,
+      amount: data.amount,
+      bkash_trx_id: data.trxId,
       status: PaymentStatus.PENDING,
       submitted_at: new Date().toISOString()
     };
     this.payments.push(payment);
+
     this.save();
     return true;
   }
@@ -237,7 +257,6 @@ class DbService {
       if (enrollment) {
         enrollment.status = PaymentStatus.APPROVED;
         enrollment.approved_at = new Date().toISOString();
-        enrollment.access_token = crypto.randomUUID();
       }
       this.save();
     }
@@ -254,35 +273,29 @@ class DbService {
   }
 
   getEnrolledPrograms(studentId: string) {
-    const enrolledIds = this.enrollments
-      .filter(e => e.student_id === studentId && e.status === PaymentStatus.APPROVED)
-      .map(e => e.program_id);
-    return this.programs.filter(p => enrolledIds.includes(p.id));
+    const approvedEnrollments = this.enrollments.filter(e => e.student_id === studentId && e.status === PaymentStatus.APPROVED);
+    return this.programs.filter(p => approvedEnrollments.some(e => e.program_id === p.id));
   }
 
+  // Progress tracking
   getProgress(studentId: string, programId: string) {
-    return this.videoProgress.filter(vp => vp.student_id === studentId && vp.program_id === programId);
+    return this.videoProgress.filter(vp => vp.student_id === studentId && vp.program_id === programId && vp.is_completed);
   }
 
   markVideoComplete(studentId: string, programId: string, videoId: string) {
-    const existing = this.videoProgress.find(vp => vp.student_id === studentId && vp.video_id === videoId);
-    if (!existing) {
+    if (!this.videoProgress.find(vp => vp.student_id === studentId && vp.video_id === videoId)) {
       this.videoProgress.push({
         id: crypto.randomUUID(),
         student_id: studentId,
-        program_id: programId,
         video_id: videoId,
+        program_id: programId,
         is_completed: true,
         completed_at: new Date().toISOString()
       });
       this.save();
     }
   }
-
-  validatePromo(codeStr: string) {
-    const code = this.promoCodes.find(pc => pc.code === codeStr && pc.is_active && pc.used_count < pc.max_uses);
-    return code || null;
-  }
 }
 
+// Fixed: Exporting db instance to be used across the application
 export const db = new DbService();
