@@ -42,8 +42,9 @@ const AppPreview = () => {
     prefetch: () => {},
   };
 
-  // Simple route matcher for the preview
+  // Simple route matcher for the preview environment
   const renderRoute = () => {
+    // Exact matches
     if (pathname === '/login') return <LoginPage />;
     if (pathname === '/dashboard') return <DashboardPage />;
     if (pathname === '/admin') return <AdminDashboardPage />;
@@ -52,11 +53,21 @@ const AppPreview = () => {
     if (pathname === '/admin/promocodes') return <AdminPromoCodesPage />;
     if (pathname === '/admin/students') return <AdminStudentsPage />;
     
+    // Dynamic routes
     if (pathname.startsWith('/programs/')) {
       const slug = pathname.replace('/programs/', '');
       const paramsPromise = Promise.resolve({ slug });
       (window as any).mockParams = { slug };
       return <ProgramDetailPage params={paramsPromise} />;
+    }
+
+    if (pathname.startsWith('/course/')) {
+      const slug = pathname.replace('/course/', '');
+      const paramsPromise = Promise.resolve({ slug });
+      (window as any).mockParams = { slug };
+      // Note: Reusing the same player logic as the Next.js app
+      const CoursePlayerPage = require('./app/course/[slug]/page').default;
+      return <CoursePlayerPage params={paramsPromise} />;
     }
 
     // Default to Home
