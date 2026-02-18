@@ -62,6 +62,8 @@ export interface Payment {
   screenshot_url?: string;
   status: PaymentStatus;
   submitted_at: string;
+  // Property verified_at added to track when an admin approves a payment
+  verified_at?: string;
   admin_notes?: string;
 }
 

@@ -3,11 +3,10 @@
 
 /**
  * Mock implementation of next/navigation for the preview environment.
- * This satisfies the 'useRouter', 'usePathname', and 'useSearchParams' hooks.
  */
 
 export const useRouter = () => {
-  return (window as any).mockRouter || {
+  const router = (window as any).mockRouter || {
     push: (url: string) => {
       window.history.pushState({}, '', url);
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -21,6 +20,7 @@ export const useRouter = () => {
     refresh: () => window.location.reload(),
     prefetch: () => {},
   };
+  return router;
 };
 
 export const usePathname = () => {
@@ -28,12 +28,27 @@ export const usePathname = () => {
 };
 
 export const useSearchParams = () => {
-  if (typeof window === 'undefined') return new URLSearchParams();
-  return new URLSearchParams(window.location.search);
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  return {
+    get: (key: string) => searchParams.get(key),
+    getAll: (key: string) => searchParams.getAll(key),
+    has: (key: string) => searchParams.has(key),
+    forEach: (cb: any) => searchParams.forEach(cb),
+    entries: () => searchParams.entries(),
+    keys: () => searchParams.keys(),
+    values: () => searchParams.values(),
+    toString: () => searchParams.toString(),
+  };
 };
 
 export const useParams = () => {
-  // In a real Next.js app this returns route params. 
-  // For the preview, index.tsx handles the mapping.
   return (window as any).mockParams || {};
+};
+
+// Exporting default for better compatibility with some import styles
+export default {
+  useRouter,
+  usePathname,
+  useSearchParams,
+  useParams
 };

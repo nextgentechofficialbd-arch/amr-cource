@@ -1,5 +1,4 @@
 
-
 import { 
   Program, Video, Student, Enrollment, 
   Payment, VideoProgress, PromoCode, 
@@ -65,7 +64,7 @@ class DbService {
         notifications: this.notifications
       }));
     } catch (e) {
-      console.error('Failed to save', e);
+      console.error('Failed to save to localStorage', e);
     }
   }
 
@@ -85,7 +84,7 @@ class DbService {
         this.notifications = parsed.notifications || [];
       }
     } catch (e) {
-      console.error('Failed to load', e);
+      // It's okay if loading fails during build or on first visit
     }
   }
 
@@ -116,7 +115,12 @@ class DbService {
   getProgramBySlug(slug: string) { return this.programs.find(p => p.slug === slug); }
   getProgramById(id: string) { return this.programs.find(p => p.id === id); }
   getVideosForProgram(programId: string) { return this.videos.filter(v => v.program_id === programId).sort((a,b) => a.order_index - b.order_index); }
-  saveVideo(v: Video) { this.videos.push(v); this.save(); }
+  
+  saveVideo(v: Video) { 
+    this.videos = [...this.videos.filter(x => x.id !== v.id), v];
+    this.save(); 
+  }
+  
   deleteVideo(id: string) { this.videos = this.videos.filter(v => v.id !== id); this.save(); }
   saveProgram(p: Program) { this.programs.push(p); this.save(); }
   getPromoCodes() { return this.promoCodes; }
@@ -125,36 +129,62 @@ class DbService {
 
   submitEnrollment(data: any) {
     const enrollmentId = crypto.randomUUID();
-    this.enrollments.push({ id: enrollmentId, student_id: 'temp', program_id: data.programId, status: PaymentStatus.PENDING } as any);
-    this.payments.push({ id: crypto.randomUUID(), enrollment_id: enrollmentId, amount: data.amount, bkash_trx_id: data.trxId, status: PaymentStatus.PENDING } as any);
+    this.enrollments.push({ 
+        id: enrollmentId, 
+        student_id: 'temp', 
+        program_id: data.programId, 
+        status: PaymentStatus.PENDING 
+    } as any);
+    this.payments.push({ 
+        id: crypto.randomUUID(), 
+        enrollment_id: enrollmentId, 
+        amount: data.amount, 
+        bkash_trx_id: data.trxId, 
+        status: PaymentStatus.PENDING,
+        submitted_at: new Date().toISOString()
+    } as any);
     this.save();
     return true;
   }
 
   getPendingPayments() { return this.payments.filter(p => p.status === PaymentStatus.PENDING); }
+  
   approvePayment(id: string) {
     const p = this.payments.find(x => x.id === id);
-    if (p) p.status = PaymentStatus.APPROVED;
+    if (p) {
+        p.status = PaymentStatus.APPROVED;
+        p.verified_at = new Date().toISOString();
+    }
     this.save();
   }
 
-  getEnrolledPrograms(studentId: string) { return this.programs; } // Simplified for mock
-  getProgress(studentId: string, programId: string) { return this.videoProgress.filter(vp => vp.student_id === studentId); }
-  
-  // FIX: Added 'id' and 'completed_at' to meet VideoProgress interface requirements
-  markVideoComplete(sId: string, pId: string, vId: string) {
-    this.videoProgress.push({ 
-      id: crypto.randomUUID(),
-      student_id: sId, 
-      video_id: vId, 
-      program_id: pId, 
-      is_completed: true,
-      completed_at: new Date().toISOString()
-    });
-    this.save();
+  getEnrolledPrograms(studentId: string) { 
+    return this.programs; 
   }
+  
+  getProgress(studentId: string, programId: string) { 
+    return this.videoProgress.filter(vp => vp.student_id === studentId && vp.program_id === programId); 
+  }
+  
+  markVideoComplete(sId: string, pId: string, vId: string) {
+    if (!this.videoProgress.some(vp => vp.student_id === sId && vp.video_id === vId)) {
+        this.videoProgress.push({ 
+          id: crypto.randomUUID(),
+          student_id: sId, 
+          video_id: vId, 
+          program_id: pId, 
+          is_completed: true,
+          completed_at: new Date().toISOString()
+        });
+        this.save();
+    }
+  }
+  
   getAdminNotifications() { return this.notifications; }
-  markNotificationsRead() { this.notifications.forEach(n => n.is_read = true); this.save(); }
+  markNotificationsRead() { 
+    this.notifications = this.notifications.map(n => ({ ...n, is_read: true }));
+    this.save(); 
+  }
 }
 
 export const db = new DbService();

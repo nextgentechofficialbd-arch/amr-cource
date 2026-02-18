@@ -11,7 +11,7 @@ import AdminPaymentsPage from './app/admin/payments/page';
 import AdminPromoCodesPage from './app/admin/promocodes/page';
 import AdminStudentsPage from './app/admin/students/page';
 
-// --- Preview Router Configuration ---
+// --- Preview Router Logic ---
 
 const AppPreview = () => {
   const [pathname, setPathname] = useState(window.location.pathname);
@@ -42,9 +42,9 @@ const AppPreview = () => {
     prefetch: () => {},
   };
 
-  // Simple route matcher for the preview environment
+  // Simplified routing for the browser preview environment
   const renderRoute = () => {
-    // Exact matches
+    // Exact path matches
     if (pathname === '/login') return <LoginPage />;
     if (pathname === '/dashboard') return <DashboardPage />;
     if (pathname === '/admin') return <AdminDashboardPage />;
@@ -53,7 +53,7 @@ const AppPreview = () => {
     if (pathname === '/admin/promocodes') return <AdminPromoCodesPage />;
     if (pathname === '/admin/students') return <AdminStudentsPage />;
     
-    // Dynamic routes
+    // Dynamic route matching
     if (pathname.startsWith('/programs/')) {
       const slug = pathname.replace('/programs/', '');
       const paramsPromise = Promise.resolve({ slug });
@@ -65,24 +65,36 @@ const AppPreview = () => {
       const slug = pathname.replace('/course/', '');
       const paramsPromise = Promise.resolve({ slug });
       (window as any).mockParams = { slug };
-      // Note: Reusing the same player logic as the Next.js app
-      const CoursePlayerPage = require('./app/course/[slug]/page').default;
-      return <CoursePlayerPage params={paramsPromise} />;
+      
+      // Dynamic import simulated for the preview
+      try {
+        const CoursePlayerPage = require('./app/course/[slug]/page').default;
+        return <CoursePlayerPage params={paramsPromise} />;
+      } catch (e) {
+        console.error("Course player not found in current context", e);
+        return <Home />;
+      }
     }
 
-    // Default to Home
+    // Default Fallback
     return <Home />;
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white">
+    <div className="min-h-screen bg-[#0F172A] text-white selection:bg-blue-600/30 selection:text-white">
       {renderRoute()}
     </div>
   );
 };
 
+// --- App Bootstrapping ---
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
-  root.render(<AppPreview />);
+  root.render(
+    <React.StrictMode>
+      <AppPreview />
+    </React.StrictMode>
+  );
 }
