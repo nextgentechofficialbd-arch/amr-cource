@@ -201,11 +201,19 @@ class DbService {
   }
 
   validatePromo(code: string) {
-    return this.promoCodes.find(c => c.code === code.toUpperCase() && c.is_active && c.used_count < c.max_uses);
+    if (!code) return undefined;
+    const now = new Date();
+    return this.promoCodes.find(c => {
+      const isMatch = c.code === code.toUpperCase();
+      const isActive = c.is_active;
+      const hasUses = c.used_count < c.max_uses;
+      const notExpired = !c.expires_at || new Date(c.expires_at) > now;
+      return isMatch && isActive && hasUses && notExpired;
+    });
   }
 
   // Enrollment & Payments
-  submitEnrollment(data: { name: string, email: string, phone: string, trxId: string, programId: string, amount: number }) {
+  submitEnrollment(data: { name: string, email: string, phone: string, trxId: string, programId: string, amount: number, promoCode?: string }) {
     let student = this.students.find(s => s.email === data.email);
     if (!student) {
       student = {
@@ -217,6 +225,14 @@ class DbService {
         created_at: new Date().toISOString()
       };
       this.students.push(student);
+    }
+
+    // Increment promo code usage if applicable
+    if (data.promoCode) {
+      const promo = this.promoCodes.find(c => c.code === data.promoCode?.toUpperCase());
+      if (promo) {
+        promo.used_count += 1;
+      }
     }
 
     const enrollment: Enrollment = {

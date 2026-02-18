@@ -12,6 +12,7 @@ const ProgramDetail: React.FC = () => {
   const [program, setProgram] = useState<Program | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState('');
   const [discount, setDiscount] = useState(0);
   const [faqInput, setFaqInput] = useState('');
   const [faqAnswer, setFaqAnswer] = useState<{ q: string, a: string }[]>([]);
@@ -38,12 +39,20 @@ const ProgramDetail: React.FC = () => {
   }, [slug, navigate]);
 
   const handleApplyPromo = () => {
+    if (!promoCode) {
+      setDiscount(0);
+      setAppliedPromo('');
+      return;
+    }
     const result = db.validatePromo(promoCode);
     if (result) {
       setDiscount(result.discount_percent);
+      setAppliedPromo(result.code);
       alert(`${result.discount_percent}% ডিসকাউন্ট সফলভাবে প্রয়োগ করা হয়েছে!`);
     } else {
-      alert('দুঃখিত, এই প্রোমো কোডটি সঠিক নয়।');
+      setDiscount(0);
+      setAppliedPromo('');
+      alert('দুঃখিত, এই প্রোমো কোডটি সঠিক নয় বা এর মেয়াদ শেষ হয়ে গেছে।');
     }
   };
 
@@ -64,7 +73,8 @@ const ProgramDetail: React.FC = () => {
     const success = db.submitEnrollment({
       ...formData,
       programId: program.id,
-      amount: finalAmount
+      amount: finalAmount,
+      promoCode: appliedPromo || undefined
     });
 
     if (success) {
