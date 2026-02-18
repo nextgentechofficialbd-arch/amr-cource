@@ -14,7 +14,7 @@ const INITIAL_PROGRAMS: Program[] = [
     short_description: 'আধুনিক ওয়েব টেকনোলজি শিখে হয়ে উঠুন একজন দক্ষ ডেভেলপার।',
     description: 'এই কোর্সে আপনি শিখবেন React, Node.js, এবং MongoDB সহ আধুনিক সব ওয়েব টেকনোলজি। কোর্সটি প্রজেক্ট ভিত্তিক এবং একদম জিরো থেকে শুরু করা হবে।',
     price: 4500,
-    thumbnail_url: 'https://picsum.photos/seed/web/800/450',
+    thumbnail_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800',
     is_active: true,
     order_index: 1,
     created_at: new Date().toISOString()
@@ -26,7 +26,7 @@ const INITIAL_PROGRAMS: Program[] = [
     short_description: 'ডিজাইন সেন্স এবং টুলস শিখে ক্যারিয়ার শুরু করুন ফ্রিল্যান্সিংয়ে।',
     description: 'Photoshop, Illustrator এবং Figma ব্যবহার করে প্রফেশনাল ডিজাইন করার সম্পূর্ণ গাইডলাইন। লোগো ডিজাইন থেকে শুরু করে UI/UX সবকিছুই থাকবে এই কোর্সে।',
     price: 3500,
-    thumbnail_url: 'https://picsum.photos/seed/design/800/450',
+    thumbnail_url: 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=800',
     is_active: true,
     order_index: 2,
     created_at: new Date().toISOString()
@@ -38,7 +38,7 @@ const INITIAL_PROGRAMS: Program[] = [
     short_description: 'Adobe Premiere Pro এবং After Effects দিয়ে ভিডিও এডিটিংয়ের জাদু শিখুন।',
     description: 'একজন প্রফেশনাল এডিটর হিসেবে নিজেকে গড়ে তুলতে যা যা জানা প্রয়োজন তার সবকিছুই পাবেন এখানে। কালার গ্রেডিং থেকে শুরু করে মোশন গ্রাফিক্সের বেসিক।',
     price: 4000,
-    thumbnail_url: 'https://picsum.photos/seed/video/800/450',
+    thumbnail_url: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&q=80&w=800',
     is_active: true,
     order_index: 3,
     created_at: new Date().toISOString()
@@ -54,13 +54,16 @@ const INITIAL_VIDEOS: Video[] = [
 class DbService {
   private programs: Program[] = INITIAL_PROGRAMS;
   private videos: Video[] = INITIAL_VIDEOS;
-  private students: Student[] = [{ id: 'admin-1', email: 'admin@amrcourse.com', full_name: 'Admin User', phone: '0123456789', role: UserRole.ADMIN, created_at: '' }];
+  private students: Student[] = [
+    { id: 'admin-1', email: 'admin@amrcourse.com', full_name: 'Admin User', phone: '0123456789', role: UserRole.ADMIN, created_at: new Date().toISOString() }
+  ];
   private enrollments: Enrollment[] = [];
-  private payments: Payment[] = [];
+  public payments: Payment[] = []; // Made public for stats access
   private videoProgress: VideoProgress[] = [];
   private promoCodes: PromoCode[] = [
     { id: 'pc1', code: 'AMR20', discount_percent: 20, max_uses: 100, used_count: 5, is_active: true }
   ];
+  private ipLogs: any[] = [];
 
   constructor() {
     this.load();
@@ -74,7 +77,8 @@ class DbService {
       enrollments: this.enrollments,
       payments: this.payments,
       videoProgress: this.videoProgress,
-      promoCodes: this.promoCodes
+      promoCodes: this.promoCodes,
+      ipLogs: this.ipLogs
     }));
   }
 
@@ -89,10 +93,23 @@ class DbService {
       this.payments = parsed.payments || [];
       this.videoProgress = parsed.videoProgress || [];
       this.promoCodes = parsed.promoCodes || this.promoCodes;
+      this.ipLogs = parsed.ipLogs || [];
     }
   }
 
-  // Auth Methods
+  logIpAction(action: string) {
+    const user = this.getCurrentUser();
+    this.ipLogs.push({
+      id: crypto.randomUUID(),
+      student_id: user?.id || null,
+      action,
+      ip_address: '127.0.0.1 (Simulated)',
+      created_at: new Date().toISOString()
+    });
+    this.save();
+  }
+
+  // Auth
   getCurrentUser() {
     const user = localStorage.getItem('amrcourse_user');
     return user ? JSON.parse(user) as Student : null;
@@ -102,6 +119,7 @@ class DbService {
     const student = this.students.find(s => s.email === email);
     if (student) {
       localStorage.setItem('amrcourse_user', JSON.stringify(student));
+      this.logIpAction(`LOGIN: ${email}`);
       return student;
     }
     return null;
@@ -109,9 +127,19 @@ class DbService {
 
   logout() {
     localStorage.removeItem('amrcourse_user');
+    this.logIpAction('LOGOUT');
   }
 
-  // Program Methods
+  // Admin: Student Management
+  getAllStudents() {
+    return this.students.filter(s => s.role === UserRole.STUDENT);
+  }
+
+  getStudentEnrollmentCount(studentId: string) {
+    return this.enrollments.filter(e => e.student_id === studentId && e.status === PaymentStatus.APPROVED).length;
+  }
+
+  // Programs
   getPrograms() { return this.programs.filter(p => p.is_active); }
   getAllPrograms() { return this.programs; }
   getProgramBySlug(slug: string) { return this.programs.find(p => p.slug === slug); }
@@ -124,18 +152,32 @@ class DbService {
     this.save();
   }
 
-  // Video Methods
+  // Promo Codes
+  getPromoCodes() { return this.promoCodes; }
+  savePromoCode(code: PromoCode) {
+    const idx = this.promoCodes.findIndex(c => c.id === code.id);
+    if (idx > -1) this.promoCodes[idx] = code;
+    else this.promoCodes.push(code);
+    this.save();
+  }
+  togglePromoCode(id: string) {
+    const code = this.promoCodes.find(c => c.id === id);
+    if (code) {
+      code.is_active = !code.is_active;
+      this.save();
+    }
+  }
+
+  // Videos
   getVideosForProgram(programId: string) {
     return this.videos.filter(v => v.program_id === programId).sort((a, b) => a.order_index - b.order_index);
   }
-
   saveVideo(video: Video) {
     const idx = this.videos.findIndex(v => v.id === video.id);
     if (idx > -1) this.videos[idx] = video;
     else this.videos.push(video);
     this.save();
   }
-
   deleteVideo(id: string) {
     this.videos = this.videos.filter(v => v.id !== id);
     this.save();
@@ -146,7 +188,6 @@ class DbService {
     name: string, email: string, phone: string, programId: string, 
     trxId: string, amount: number, screenshotUrl?: string 
   }) {
-    // 1. Upsert student
     let student = this.students.find(s => s.email === enrollData.email);
     if (!student) {
       student = {
@@ -159,8 +200,6 @@ class DbService {
       };
       this.students.push(student);
     }
-
-    // 2. Create enrollment
     const enrollment: Enrollment = {
       id: crypto.randomUUID(),
       student_id: student.id,
@@ -170,8 +209,6 @@ class DbService {
       token_used: false
     };
     this.enrollments.push(enrollment);
-
-    // 3. Create payment
     const payment: Payment = {
       id: crypto.randomUUID(),
       enrollment_id: enrollment.id,
@@ -216,7 +253,6 @@ class DbService {
     }
   }
 
-  // Student Dashboard
   getEnrolledPrograms(studentId: string) {
     const enrolledIds = this.enrollments
       .filter(e => e.student_id === studentId && e.status === PaymentStatus.APPROVED)
@@ -224,7 +260,6 @@ class DbService {
     return this.programs.filter(p => enrolledIds.includes(p.id));
   }
 
-  // Progress
   getProgress(studentId: string, programId: string) {
     return this.videoProgress.filter(vp => vp.student_id === studentId && vp.program_id === programId);
   }
@@ -244,7 +279,6 @@ class DbService {
     }
   }
 
-  // Promo
   validatePromo(codeStr: string) {
     const code = this.promoCodes.find(pc => pc.code === codeStr && pc.is_active && pc.used_count < pc.max_uses);
     return code || null;

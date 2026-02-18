@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { db } from './services/dbService';
 import { Student, UserRole } from './types';
 
@@ -14,8 +14,18 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminPrograms from './pages/AdminPrograms';
 import AdminPayments from './pages/AdminPayments';
 import AdminVideos from './pages/AdminVideos';
+import AdminStudents from './pages/AdminStudents';
+import AdminPromoCodes from './pages/AdminPromoCodes';
 
-// Fixed ProtectedRoute: Moved outside App to resolve TypeScript children missing error and typed correctly as React.FC
+// Route Tracker Component to log IP "middleware" style
+const RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    db.logIpAction(`NAVIGATE: ${location.pathname}`);
+  }, [location]);
+  return null;
+};
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: UserRole }> = ({ children, role }) => {
   const user = db.getCurrentUser();
   if (!user) return <Navigate to="/login" />;
@@ -27,7 +37,6 @@ const App: React.FC = () => {
   const [user, setUser] = useState<Student | null>(db.getCurrentUser());
 
   useEffect(() => {
-    // Simple way to listen to login/logout across the app
     const checkUser = () => setUser(db.getCurrentUser());
     window.addEventListener('storage', checkUser);
     return () => window.removeEventListener('storage', checkUser);
@@ -35,6 +44,7 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
+      <RouteTracker />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -89,6 +99,22 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute role={UserRole.ADMIN}>
               <AdminVideos />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/students" 
+          element={
+            <ProtectedRoute role={UserRole.ADMIN}>
+              <AdminStudents />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/promocodes" 
+          element={
+            <ProtectedRoute role={UserRole.ADMIN}>
+              <AdminPromoCodes />
             </ProtectedRoute>
           } 
         />
