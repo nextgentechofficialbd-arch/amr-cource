@@ -2,21 +2,29 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../services/dbService';
-import { Payment, PaymentStatus } from '../types';
+import { Payment } from '../types';
+import toast from 'react-hot-toast';
 
 const AdminPayments: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>(db.getPendingPayments());
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const handleApprove = (id: string) => {
-    db.approvePayment(id);
+    const paymentNote = notes[id] || '';
+    db.approvePayment(id, paymentNote);
     setPayments(db.getPendingPayments());
-    alert('পেমেন্ট অ্যাপ্রুভ করা হয়েছে। স্টুডেন্টকে এক্সেস ইমেইল পাঠানো হয়েছে (সিমুলেটেড)।');
+    toast.success('পেমেন্ট অ্যাপ্রুভ করা হয়েছে।');
   };
 
   const handleReject = (id: string) => {
-    db.rejectPayment(id);
+    const paymentNote = notes[id] || '';
+    db.rejectPayment(id, paymentNote);
     setPayments(db.getPendingPayments());
-    alert('পেমেন্ট রিজেক্ট করা হয়েছে।');
+    toast.error('পেমেন্ট রিজেক্ট করা হয়েছে।');
+  };
+
+  const handleNoteChange = (id: string, value: string) => {
+    setNotes(prev => ({ ...prev, [id]: value }));
   };
 
   return (
@@ -56,9 +64,8 @@ const AdminPayments: React.FC = () => {
                     <tr>
                       <th className="px-6 py-4">স্টুডেন্ট আইডি</th>
                       <th className="px-6 py-4">bKash TrxID</th>
-                      <th className="px-6 py-4 text-center">স্ক্রিনশট</th>
                       <th className="px-6 py-4 font-inter">টাকার পরিমাণ</th>
-                      <th className="px-6 py-4">তারিখ</th>
+                      <th className="px-6 py-4">নোটস (ঐচ্ছিক)</th>
                       <th className="px-6 py-4 text-right">অ্যাকশন</th>
                     </tr>
                   </thead>
@@ -71,23 +78,19 @@ const AdminPayments: React.FC = () => {
                         <td className="px-6 py-4">
                           <span className="bg-slate-900 text-slate-100 font-inter px-2 py-1 rounded text-xs tracking-wider border border-slate-700">{p.bkash_trx_id}</span>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <a 
-                            href={p.screenshot_url} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="text-blue-400 hover:underline text-xs"
-                          >
-                            দেখুন ↗
-                          </a>
-                        </td>
                         <td className="px-6 py-4 font-bold font-inter text-blue-400">
                           ৳{p.amount}
                         </td>
-                        <td className="px-6 py-4 text-slate-500 text-xs">
-                          {new Date(p.submitted_at).toLocaleDateString()}
+                        <td className="px-6 py-4">
+                          <input 
+                            type="text" 
+                            placeholder="যেমন: সঠিক ট্রানজেকশন"
+                            value={notes[p.id] || ''}
+                            onChange={(e) => handleNoteChange(p.id, e.target.value)}
+                            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
                         </td>
-                        <td className="px-6 py-4 text-right flex gap-3 justify-end">
+                        <td className="px-6 py-4 text-right flex gap-3 justify-end items-center">
                           <button 
                             onClick={() => handleApprove(p.id)}
                             className="bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all border border-green-500/20"

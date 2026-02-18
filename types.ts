@@ -62,6 +62,7 @@ export interface Payment {
   screenshot_url?: string;
   status: PaymentStatus;
   submitted_at: string;
+  admin_notes?: string;
 }
 
 export interface VideoProgress {

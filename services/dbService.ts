@@ -119,6 +119,11 @@ class DbService {
     this.save();
   }
 
+  private notifyAdmin(message: string) {
+    // Simulated admin notification system
+    console.log(`%c[ADMIN NOTIFICATION]: ${message}`, 'color: #2563EB; font-weight: bold; background: #E0E7FF; padding: 4px; border-radius: 4px;');
+  }
+
   // Auth
   getCurrentUser() {
     try {
@@ -258,6 +263,7 @@ class DbService {
     this.payments.push(payment);
 
     this.save();
+    this.notifyAdmin(`New enrollment request submitted by ${data.name} (৳${data.amount})`);
     return true;
   }
 
@@ -265,26 +271,30 @@ class DbService {
     return this.payments.filter(p => p.status === PaymentStatus.PENDING);
   }
 
-  approvePayment(paymentId: string) {
+  approvePayment(paymentId: string, notes?: string) {
     const payment = this.payments.find(p => p.id === paymentId);
     if (payment) {
       payment.status = PaymentStatus.APPROVED;
+      payment.admin_notes = notes;
       const enrollment = this.enrollments.find(e => e.id === payment.enrollment_id);
       if (enrollment) {
         enrollment.status = PaymentStatus.APPROVED;
         enrollment.approved_at = new Date().toISOString();
       }
       this.save();
+      this.notifyAdmin(`Payment approved for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`);
     }
   }
 
-  rejectPayment(paymentId: string) {
+  rejectPayment(paymentId: string, notes?: string) {
     const payment = this.payments.find(p => p.id === paymentId);
     if (payment) {
       payment.status = PaymentStatus.REJECTED;
+      payment.admin_notes = notes;
       const enrollment = this.enrollments.find(e => e.id === payment.enrollment_id);
       if (enrollment) enrollment.status = PaymentStatus.REJECTED;
       this.save();
+      this.notifyAdmin(`Payment REJECTED for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`);
     }
   }
 
