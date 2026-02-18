@@ -83,3 +83,11 @@ export interface PromoCode {
   expires_at?: string;
   is_active: boolean;
 }
+
+export interface AdminNotification {
+  id: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  created_at: string;
+  is_read: boolean;
+}

@@ -2,7 +2,7 @@
 import { 
   Program, Video, Student, Enrollment, 
   Payment, VideoProgress, PromoCode, 
-  UserRole, PaymentStatus 
+  UserRole, PaymentStatus, AdminNotification 
 } from '../types';
 
 // Initial Mock Data
@@ -64,6 +64,7 @@ class DbService {
     { id: 'pc1', code: 'AMR20', discount_percent: 20, max_uses: 100, used_count: 5, is_active: true }
   ];
   private ipLogs: any[] = [];
+  private notifications: AdminNotification[] = [];
 
   constructor() {
     this.load();
@@ -79,7 +80,8 @@ class DbService {
         payments: this.payments,
         videoProgress: this.videoProgress,
         promoCodes: this.promoCodes,
-        ipLogs: this.ipLogs
+        ipLogs: this.ipLogs,
+        notifications: this.notifications
       }));
     } catch (e) {
       console.error('Failed to save to localStorage', e);
@@ -100,6 +102,7 @@ class DbService {
           this.videoProgress = parsed.videoProgress || [];
           this.promoCodes = parsed.promoCodes || this.promoCodes;
           this.ipLogs = parsed.ipLogs || [];
+          this.notifications = parsed.notifications || [];
         }
       }
     } catch (e) {
@@ -119,9 +122,29 @@ class DbService {
     this.save();
   }
 
-  private notifyAdmin(message: string) {
-    // Simulated admin notification system
+  private notifyAdmin(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+    const notification: AdminNotification = {
+      id: crypto.randomUUID(),
+      message,
+      type,
+      created_at: new Date().toISOString(),
+      is_read: false
+    };
+    this.notifications.unshift(notification); // Show newest notifications at the top
+    if (this.notifications.length > 50) this.notifications.pop(); // Keep only last 50
+    this.save();
+    
+    // Log to console for development visibility
     console.log(`%c[ADMIN NOTIFICATION]: ${message}`, 'color: #2563EB; font-weight: bold; background: #E0E7FF; padding: 4px; border-radius: 4px;');
+  }
+
+  getAdminNotifications() {
+    return this.notifications;
+  }
+
+  markNotificationsRead() {
+    this.notifications.forEach(n => n.is_read = true);
+    this.save();
   }
 
   // Auth
@@ -263,7 +286,7 @@ class DbService {
     this.payments.push(payment);
 
     this.save();
-    this.notifyAdmin(`New enrollment request submitted by ${data.name} (৳${data.amount})`);
+    this.notifyAdmin(`New enrollment request submitted by ${data.name} (৳${data.amount})`, 'info');
     return true;
   }
 
@@ -282,7 +305,7 @@ class DbService {
         enrollment.approved_at = new Date().toISOString();
       }
       this.save();
-      this.notifyAdmin(`Payment approved for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`);
+      this.notifyAdmin(`Payment approved for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`, 'success');
     }
   }
 
@@ -294,7 +317,7 @@ class DbService {
       const enrollment = this.enrollments.find(e => e.id === payment.enrollment_id);
       if (enrollment) enrollment.status = PaymentStatus.REJECTED;
       this.save();
-      this.notifyAdmin(`Payment REJECTED for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`);
+      this.notifyAdmin(`Payment REJECTED for TrxID: ${payment.bkash_trx_id}${notes ? `. Note: ${notes}` : ''}`, 'error');
     }
   }
 
