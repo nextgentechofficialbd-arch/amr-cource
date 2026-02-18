@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -34,9 +35,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: UserRole }> =
 };
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<Student | null>(db.getCurrentUser());
+  const [user, setUser] = useState<Student | null>(null);
 
   useEffect(() => {
+    setUser(db.getCurrentUser());
     const checkUser = () => setUser(db.getCurrentUser());
     window.addEventListener('storage', checkUser);
     return () => window.removeEventListener('storage', checkUser);

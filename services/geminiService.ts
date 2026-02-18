@@ -1,9 +1,24 @@
-// Static course description generator (Replaces Gemini AI)
+
+import { GoogleGenAI } from "@google/genai";
+
+// Use Gemini 3 Flash to generate compelling course descriptions in Bengali
 export const generateCourseDescription = async (programTitle: string): Promise<string> => {
-  return `আপনার '${programTitle}' কোর্সটির জন্য একটি চমৎকার বর্ণনা এখানে লিখুন। আপনি চাইলে এখানে কোর্সের মডিউল, সুবিধা এবং লার্নিং আউটকাম সম্পর্কে বিস্তারিত বলতে পারেন। এটি একটি স্ট্যাটিক টেম্পলেট।`;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Generate a detailed and professional course description in Bengali for an online course titled "${programTitle}". Include course modules, key benefits, and expected learning outcomes to encourage student enrollment.`,
+  });
+  return response.text || "আপনার কোর্সের জন্য বর্ণনা তৈরি করা সম্ভব হয়নি।";
 };
 
-// Static FAQ assistant (Replaces Gemini AI)
+// Use Gemini 3 Flash to provide helpful answers to student questions in Bengali
 export const getFaqAnswer = async (programTitle: string, question: string): Promise<string> => {
-  return `আপনার '${question}' প্রশ্নটির জন্য ধন্যবাদ। এই মুহূর্তে আমাদের AI অ্যাসিস্ট্যান্ট অপশনটি বন্ধ রয়েছে। তবে '${programTitle}' সম্পর্কে যেকোনো তথ্যের জন্য আমাদের সাপোর্ট টীমের সাথে যোগাযোগ করুন।`;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `You are a helpful AI learning assistant for the 'AmrCourse' platform. A student is asking a question about the "${programTitle}" course.
+    Question: "${question}"
+    Provide a polite, professional, and encouraging answer in Bengali.`,
+  });
+  return response.text || "দুঃখিত, এই মুহূর্তে উত্তর দেওয়া সম্ভব হচ্ছে না। বিস্তারিত জানতে আমাদের সাপোর্ট টিমে যোগাযোগ করুন।";
 };
