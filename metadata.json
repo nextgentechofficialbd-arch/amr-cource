@@ -1,0 +1,8 @@
+{
+  "name": "AmrCourse Platform",
+  "description": "A comprehensive online course agency platform for the Bangladesh market featuring manual bKash payments, AI-powered course descriptions, and a secure student learning dashboard.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
