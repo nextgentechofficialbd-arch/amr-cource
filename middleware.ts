@@ -35,23 +35,21 @@ export async function middleware(request: NextRequest) {
 
   // 1. Admin route protection
   if (pathname.startsWith('/admin')) {
-    // Public admin login page
     if (pathname === '/admin/login') {
       return supabaseResponse
     }
     
-    // Check session for other admin routes
     if (!session) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
     
-    // Strict admin email check (Set this in your Vercel environment variables)
+    // Ensure you set this environment variable in Vercel
     if (session.user.email !== process.env.ADMIN_EMAIL) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
 
-  // 2. Protected Student routes (Dashboard/Player)
+  // 2. Protected Student routes
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/course')) {
     if (!session) {
       return NextResponse.redirect(new URL('/login', request.url))
