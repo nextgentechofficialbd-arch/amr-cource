@@ -1,4 +1,5 @@
-import { createServerClient } from '@supabase/ssr'
+
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
@@ -44,7 +45,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
     
-    // Strict admin email check
+    // Strict admin email check (Set this in your Vercel environment variables)
     if (session.user.email !== process.env.ADMIN_EMAIL) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
