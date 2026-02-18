@@ -6,7 +6,7 @@
  */
 
 export const useRouter = () => {
-  const router = (window as any).mockRouter || {
+  return (window as any).mockRouter || {
     push: (url: string) => {
       window.history.pushState({}, '', url);
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -20,7 +20,6 @@ export const useRouter = () => {
     refresh: () => window.location.reload(),
     prefetch: () => {},
   };
-  return router;
 };
 
 export const usePathname = () => {
@@ -33,11 +32,11 @@ export const useSearchParams = () => {
     get: (key: string) => searchParams.get(key),
     getAll: (key: string) => searchParams.getAll(key),
     has: (key: string) => searchParams.has(key),
-    forEach: (cb: any) => searchParams.forEach(cb),
     entries: () => searchParams.entries(),
     keys: () => searchParams.keys(),
     values: () => searchParams.values(),
     toString: () => searchParams.toString(),
+    forEach: (cb: any) => searchParams.forEach(cb),
   };
 };
 
@@ -45,7 +44,6 @@ export const useParams = () => {
   return (window as any).mockParams || {};
 };
 
-// Exporting default for better compatibility with some import styles
 export default {
   useRouter,
   usePathname,
