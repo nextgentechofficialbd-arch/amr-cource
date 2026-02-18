@@ -1,50 +1,23 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmrCourse - অনলাইনে শিখুন, এগিয়ে থাকুন</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Hind Siliguri', 'Inter', sans-serif;
-        }
-        .font-inter {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-    <script>
-      // Shim process.env for browser compatibility
-      window.process = window.process || { env: {} };
-    </script>
-    <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.3.1",
-    "react/": "https://esm.sh/react@18.3.1/",
-    "react-dom": "https://esm.sh/react-dom@18.3.1",
-    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.28.0?deps=react@18.3.1,react-dom@18.3.1",
-    "next": "https://esm.sh/next@^16.1.6",
-    "tailwindcss": "https://esm.sh/tailwindcss@^4.1.18",
-    "@supabase/ssr": "https://esm.sh/@supabase/ssr@^0.8.0",
-    "next/": "https://esm.sh/next@^16.1.6/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.34.1",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.96.0",
-    "resend": "https://esm.sh/resend@^6.9.2",
-    "clsx": "https://esm.sh/clsx@^2.1.1",
-    "tailwind-merge": "https://esm.sh/tailwind-merge@^3.4.1",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "react-hot-toast": "https://esm.sh/react-hot-toast@^2.6.0"
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.574.0",
+    "tailwindcss": "https://esm.sh/tailwindcss@^4.1.18",
+    "next/": "https://esm.sh/next@^16.1.6/",
+    "next": "https://esm.sh/next@^16.1.6",
+    "react-hot-toast": "https://esm.sh/react-hot-toast@^2.6.0",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@^3.4.1",
+    "resend": "https://esm.sh/resend@^6.9.2",
+    "@supabase/ssr": "https://esm.sh/@supabase/ssr@^0.8.0"
   }
 }
 </script>
-</head>
-<body class="bg-[#0F172A] text-slate-100 min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-</body>
-</html>
+<!-- Deprecated in favor of Next.js 15 App Router. -->
+<!-- Root template moved to app/layout.tsx -->
